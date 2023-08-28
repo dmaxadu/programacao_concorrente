@@ -61,7 +61,7 @@ void print_vector(int *vector){
     int max_prints = 50;
     int j;
     for(j = 0; j < max_prints; j++){
-        printf("Elemento %d: %d\n", j, vector[j]);
+        printf("\nElemento %d: %d", j + 1, vector[j]);
     }
 }
 
