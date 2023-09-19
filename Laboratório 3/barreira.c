@@ -5,7 +5,7 @@
 int n_threads; //variavel global que armazena a quantidade de threads a serem utilizadas;
 int aux = 0; //variável auxiliar que será utilizada para verificar se a condição foi satisfeita;
 pthread_mutex_t mutex; //variável de lock a ser utilizada na exclusão mútua;
-pthread_cond_t cond; //variável condicional que será travar as threads se a condição não for satisfeita;
+pthread_cond_t cond; //variável condicional que será usada para travar as threads se a condição não for satisfeita;
 
 //protótipos das funções barreira e tarefa;
 void barreira();
