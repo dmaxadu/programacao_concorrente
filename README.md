@@ -7,5 +7,8 @@ Repositório criado para armazenar os algoritmos criados na disciplina de **Prog
 
 2 - Escrever um programa concorrente que identifique todos os números primos de 0 a N e retorne a quantidade de números primos :white_check_mark:
 
+3 - Projetar e implementar um programa concorrente onde a ordem de execução das threads é controlada no programa, usando variáveis de condição e o padrão barreira :white_check_mark:
+
 ### Listas
 - Lista 1 :white_check_mark:
+- Lista 2 :warning:
