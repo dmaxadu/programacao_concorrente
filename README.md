@@ -9,6 +9,8 @@ Repositório criado para armazenar os algoritmos criados na disciplina de **Prog
 
 3 - Projetar e implementar um programa concorrente onde a ordem de execução das threads é controlada no programa, usando variáveis de condição e o padrão barreira :white_check_mark:
 
+4 - Implementar uma biblioteca para o padrão leitores/escritores e utilizá-la no programa base fonercido pela professora para comparar o desempenho do mesmo programa utilizando exclusão mútua e o rwlock da biblioteca pthread :white_check_mark:
+
 ### Listas
 - Lista 1 :white_check_mark:
 - Lista 2 :warning:
