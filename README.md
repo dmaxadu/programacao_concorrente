@@ -16,3 +16,4 @@ Repositório criado para armazenar os algoritmos criados na disciplina de **Prog
 ### Listas
 - Lista 1 :white_check_mark:
 - Lista 2 :warning:
+- Lista 3 :warning:
