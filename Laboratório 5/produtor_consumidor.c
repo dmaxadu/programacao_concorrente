@@ -10,12 +10,12 @@
 
 //variáveis globais;
 int n_threads;
-int linhas_lidas = 0, linhas_printadas = 0, sinaliza_fim = 0, threads_ativas = 0;
+int linhas_lidas = 0, linhas_printadas = 0;
 char buffer[TAMBUFFER][TAMLINHA];
 
 //semáforos para sincronização por condição e exclusão mútua;
-sem_t slotVazio, slotCheio, threads_concluidas;
-sem_t mutexProd, mutexCons, mutex;
+sem_t slotVazio, slotCheio;
+sem_t mutex;
 
 void insere(char *linha);
 void retira();
@@ -51,11 +51,9 @@ int main(int argc, char const *argv[]){
     //inicializa os semáforos;
     sem_init(&slotCheio, 0, 0);
     sem_init(&slotVazio, 0, TAMBUFFER);
-    sem_init(&threads_concluidas, 0, 0);
     sem_init(&mutex, 0, 1);
 
     for(int i = 0; i < n_threads; i++){
-        threads_ativas++;
         if(pthread_create(&tid[i], NULL, consumidora, NULL)){
             printf("Erro: pthread_create -- consumidora");
             return 3;
@@ -65,17 +63,10 @@ int main(int argc, char const *argv[]){
     while(fgets(linha_aux, sizeof(char) * TAMLINHA, arquivo_texto) != NULL){
         produtora(linha_aux);
     }
-    
-    for(int i = 0; i < n_threads; i++){
-        sem_wait(&threads_concluidas);
-    }
 
-    sinaliza_fim = 1;
     for (int i = 0; i < n_threads; i++) {
         sem_post(&slotVazio); // Libere quaisquer threads bloqueadas no semáforo slotVazio
     }
-
-    while(threads_ativas > 0);
 
     for(int i = 0; i < n_threads; i++) {
         pthread_join(*(tid+i), NULL);
@@ -85,7 +76,6 @@ int main(int argc, char const *argv[]){
     free(tid);
     sem_destroy(&slotCheio);
     sem_destroy(&slotVazio);
-    sem_destroy(&threads_concluidas);
     sem_destroy(&mutex);
 
     return 0;
@@ -122,10 +112,8 @@ void *consumidora(){
         sem_wait(&mutex);
 
         // Verifica se todas as linhas foram impressas antes de sair
-        if (sinaliza_fim && linhas_printadas >= linhas_lidas) {
-            threads_ativas--;
+        if (linhas_printadas >= linhas_lidas) {
             sem_post(&mutex); // Libere o mutex antes de sair
-            sem_post(&threads_concluidas); // Sinalize que esta thread terminou
             pthread_exit(NULL);
         }
 
