@@ -3,26 +3,29 @@
 #include<pthread.h>
 #include<semaphore.h>
 #include<unistd.h>
+#include<string.h>
 
 #define TAMLINHA 1000
+#define TAMBUFFER 5
 
 //variáveis globais;
 int n_threads;
-int sinaliza_fim = 0;
-char *arquivo;
-char *buffer;
+int linhas_lidas = 0, linhas_printadas = 0, sinaliza_fim = 0, threads_ativas = 0;
+char buffer[TAMBUFFER][TAMLINHA];
 
 //semáforos para sincronização por condição e exclusão mútua;
-sem_t slotVazio, slotCheio;
-sem_t mutex;
+sem_t slotVazio, slotCheio, threads_concluidas;
+sem_t mutexProd, mutexCons, mutex;
 
-//protótipo da função consumidora;
+void insere(char *linha);
+void retira();
+void produtora(char *linha);
 void *consumidora();
 
-//função main, responsável por atuar como produtora e criar as threads consumidores;
-int main(int argc, char* argv[]){
+int main(int argc, char const *argv[]){
     pthread_t *tid;
     FILE *arquivo_texto;
+    char linha_aux[TAMLINHA];
 
     //verifica se o programa foi chamado corretamente;
     if(argc < 3){
@@ -32,7 +35,11 @@ int main(int argc, char* argv[]){
 
     //pega os argumentos passados na linha de comando;
     n_threads = atoi(argv[1]);
-    arquivo = argv[2];
+    arquivo_texto = fopen(argv[2], "r");
+    if(arquivo_texto == NULL){
+        printf("Erro ao abrir o arquivo");
+        return 3;
+    }
 
     //aloca memória necessária para as threads e para o buffer que vai receber as linhas do arquivo a ser lido;
     tid = malloc(sizeof(pthread_t) * n_threads);
@@ -41,76 +48,89 @@ int main(int argc, char* argv[]){
         return 2;
     }
 
-    buffer = malloc(sizeof(char) * TAMLINHA);
-    if(buffer == NULL){
-        printf("Erro: MALLOC -- buffer");
-        return 2;
-    }
-
     //inicializa os semáforos;
     sem_init(&slotCheio, 0, 0);
-    sem_init(&slotVazio, 0, 1);
+    sem_init(&slotVazio, 0, TAMBUFFER);
+    sem_init(&threads_concluidas, 0, 0);
     sem_init(&mutex, 0, 1);
 
-    //dispara os fluxos das threads consumidoras;
     for(int i = 0; i < n_threads; i++){
+        threads_ativas++;
         if(pthread_create(&tid[i], NULL, consumidora, NULL)){
             printf("Erro: pthread_create -- consumidora");
             return 3;
         }
     }
 
-    /* parte produtora da main */
-    //abre o arquivo e verifica se foi aberto corretamente;
-    arquivo_texto = fopen(arquivo, "r");
-    if(arquivo_texto == NULL){
-        printf("Erro: fopen -- arquivo_texto");
-        return 4;
+    while(fgets(linha_aux, sizeof(char) * TAMLINHA, arquivo_texto) != NULL){
+        produtora(linha_aux);
     }
-
-    //faz a leitura do arquivo linha por linha, e escreve no buffer;
-    while(!feof(arquivo_texto)){
-        //espera por um slot vazio e faz exclusão mútua;
-        sem_wait(&slotVazio);
-        sem_wait(&mutex);
-
-        //pega a linha do arquivo, e escreve no buffer;
-        fgets(buffer, sizeof(char) * TAMLINHA, arquivo_texto);
-
-        //sinaliza um slot cheio e libera o mutex;
-        sem_post(&slotCheio);
-        sem_post(&mutex);
+    
+    for(int i = 0; i < n_threads; i++){
+        sem_wait(&threads_concluidas);
     }
 
     sinaliza_fim = 1;
-
-    //fecha o arquivo que foi lido e libera a memória que foi alocada ao longo do programa;
-    fclose(arquivo_texto);
-    free(tid);
-    free(buffer);
-    sem_destroy(&slotCheio);
-    sem_destroy(&slotVazio);
-    sem_destroy(&mutex);
-}
-
-//função chamada pelas threads consumidoras disparadas na main;
-void *consumidora(){
-    while(!sinaliza_fim){
-        //espera por algo no buffer para ser impresso;
-        sem_wait(&slotCheio);
-
-        //inicio da exclusão mútua;
-        sem_wait(&mutex);
-
-        //imprime a linha;
-        printf("%s", buffer);
-
-        //sinaliza um slot vazio;
-        sem_post(&slotVazio);
-
-        //devolve o lock e finaliza a exclusão mútua;
-        sem_post(&mutex);
+    for (int i = 0; i < n_threads; i++) {
+        sem_post(&slotVazio); // Libere quaisquer threads bloqueadas no semáforo slotVazio
     }
 
-    pthread_exit(NULL);
+    while(threads_ativas > 0);
+
+    for(int i = 0; i < n_threads; i++) {
+        pthread_join(*(tid+i), NULL);
+    }
+
+    fclose(arquivo_texto);
+    free(tid);
+    sem_destroy(&slotCheio);
+    sem_destroy(&slotVazio);
+    sem_destroy(&threads_concluidas);
+    sem_destroy(&mutex);
+
+    return 0;
+}
+
+void insere(char *linha){
+    static int in = 0;
+    strcpy(buffer[in], linha);
+    //printf("Inseri: %s", buffer[in]); apenas para debug
+    in = (in + 1) % TAMBUFFER;
+    linhas_lidas++;
+}
+
+void retira(){
+    static int out = 0;
+    char linha_aux[TAMLINHA];
+    strcpy(linha_aux, buffer[out]);
+    printf("%s", linha_aux);
+    out = (out + 1) % TAMBUFFER;
+    linhas_printadas++;
+}
+
+void produtora(char *linha){
+    sem_wait(&slotVazio);
+    sem_wait(&mutex);
+    insere(linha);
+    sem_post(&slotCheio);
+    sem_post(&mutex);
+}
+
+void *consumidora(){
+    while (1) {
+        sem_wait(&slotCheio);
+        sem_wait(&mutex);
+
+        // Verifica se todas as linhas foram impressas antes de sair
+        if (sinaliza_fim && linhas_printadas >= linhas_lidas) {
+            threads_ativas--;
+            sem_post(&mutex); // Libere o mutex antes de sair
+            sem_post(&threads_concluidas); // Sinalize que esta thread terminou
+            pthread_exit(NULL);
+        }
+
+        retira();
+        sem_post(&slotVazio);
+        sem_post(&mutex);
+    }
 }
