@@ -52,7 +52,7 @@ Desta maneira, concluímos que apenas os valores -3, -2, -1, 0, 1, 2 e 3 podem s
 
 ### :hash: Questão 3
 #### **Caso 1**
-- **(a)** A ordem de execução das sentenças que vai gerar o erro é: S1 -> S3 - S2.
+- **(a)** A ordem de execução das sentenças que vai gerar o erro é: S1 -> S3 -> S2.
 - **(b)** Uma possível correção para este trecho de código é adicionar uma área de exclusão mútua em amabas as threads para permitir que apenas um fluxo seja executado por vez:
 
 ~~~c
