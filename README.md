@@ -13,6 +13,12 @@ Repositório criado para armazenar os algoritmos criados na disciplina de **Prog
 
 5 - Implementar um programa concorrente utilizando o padrão produtores/consumidores para ler as linhas de um arquivo texto e imprimi-las preservando a ordem do arquivo :white_check_mark:
 
+6 - Leitor e Escritor em Java :white_check_mark:
+
+8 - 🚧
+
+9 - Verifica primalidade de um número utilizando futuros :white_check_mark:
+
 ### Listas
 - Lista 1 :white_check_mark:
 - Lista 2 :white_check_mark:
